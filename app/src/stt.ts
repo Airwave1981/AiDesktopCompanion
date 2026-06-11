@@ -7,6 +7,7 @@ let mediaStream: MediaStream | null = null
 let recorder: MediaRecorder | null = null
 let chunks: BlobPart[] = []
 let recording = false
+let recordingStartTime = 0
 
 export async function startRecording(preferredMime = 'audio/webm;codecs=opus'): Promise<void> {
   if (recording) return
@@ -26,6 +27,7 @@ export async function startRecording(preferredMime = 'audio/webm;codecs=opus'): 
     }
     recorder.start()
     recording = true
+    recordingStartTime = Date.now()
   } catch (e) {
     cleanup()
     throw e
@@ -68,6 +70,12 @@ export async function stopRecording(): Promise<{ blob: Blob, mime: string } | nu
 
 export function isRecording(): boolean { return recording }
 
+/** Returns how long the current (or last) recording has been running in ms. */
+export function getRecordingDurationMs(): number {
+  if (!recordingStartTime) return 0
+  return Date.now() - recordingStartTime
+}
+
 function cleanup() {
   try { recorder && recorder.stream.getTracks().forEach(t => t.stop()) } catch {}
   try { mediaStream && mediaStream.getTracks().forEach(t => t.stop()) } catch {}
@@ -75,6 +83,7 @@ function cleanup() {
   mediaStream = null
   chunks = []
   recording = false
+  recordingStartTime = 0
 }
 
 // Transcode arbitrary audio blob to WAV 16kHz mono using WebAudio.
